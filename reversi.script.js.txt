@@ -1,0 +1,137 @@
+const board = document.getElementById("board");
+const status = document.getElementById("status");
+const resetButton = document.getElementById("reset");
+const count = document.getElementById("count");
+
+const SIZE = 8;
+let grid = [];
+let currentPlayer = "black";
+let gameOver = false;
+
+const directions = [
+  [-1, -1], [-1, 0], [-1, 1],
+  [0, -1],          [0, 1],
+  [1, -1], [1, 0],  [1, 1],
+];
+
+function initBoard() {
+  grid = Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
+  grid[3][3] = "white";
+  grid[3][4] = "black";
+  grid[4][3] = "black";
+  grid[4][4] = "white";
+  currentPlayer = "black";
+  gameOver = false;
+  status.textContent = "現在の手番：先行（黒）";
+  render();
+}
+
+function render() {
+  board.innerHTML = "";
+  for (let y = 0; y < SIZE; y++) {
+    for (let x = 0; x < SIZE; x++) {
+      const cell = document.createElement("div");
+      cell.classList.add("cell");
+      if (grid[y][x]) cell.classList.add(grid[y][x]);
+      cell.addEventListener("click", () => handleClick(x, y));
+      board.appendChild(cell);
+    }
+  }
+  updateCount();
+}
+
+function updateCount() {
+  let blackCount = 0;
+  let whiteCount = 0;
+  for (let row of grid) {
+    for (let cell of row) {
+      if (cell === "black") blackCount++;
+      if (cell === "white") whiteCount++;
+    }
+  }
+  count.textContent = `黒石：${blackCount}　白石：${whiteCount}`;
+}
+
+function handleClick(x, y) {
+  if (gameOver || grid[y][x]) return;
+  const flipped = getFlippableStones(x, y, currentPlayer);
+  if (flipped.length === 0) return;
+
+  grid[y][x] = currentPlayer;
+  flipped.forEach(([fx, fy]) => (grid[fy][fx] = currentPlayer));
+
+  switchPlayer();
+  if (!hasValidMove(currentPlayer)) {
+    switchPlayer();
+    if (!hasValidMove(currentPlayer)) {
+      finishGame();
+    } else {
+      status.textContent = `パス：${currentPlayer === 'black' ? '先行（黒）' : '後攻（白）'} に手番が移ります`;
+    }
+  } else {
+    status.textContent = `現在の手番：${currentPlayer === 'black' ? '先行（黒）' : '後攻（白）'}`;
+  }
+  render();
+}
+
+function getFlippableStones(x, y, player) {
+  const opponent = player === "black" ? "white" : "black";
+  const toFlip = [];
+
+  for (const [dx, dy] of directions) {
+    let cx = x + dx;
+    let cy = y + dy;
+    const line = [];
+
+    while (cx >= 0 && cx < SIZE && cy >= 0 && cy < SIZE && grid[cy][cx] === opponent) {
+      line.push([cx, cy]);
+      cx += dx;
+      cy += dy;
+    }
+
+    if (line.length && cx >= 0 && cx < SIZE && cy >= 0 && cy < SIZE && grid[cy][cx] === player) {
+      toFlip.push(...line);
+    }
+  }
+
+  return toFlip;
+}
+
+function hasValidMove(player) {
+  for (let y = 0; y < SIZE; y++) {
+    for (let x = 0; x < SIZE; x++) {
+      if (!grid[y][x] && getFlippableStones(x, y, player).length > 0) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function switchPlayer() {
+  currentPlayer = currentPlayer === "black" ? "white" : "black";
+}
+
+function finishGame() {
+  gameOver = true;
+  let blackCount = 0;
+  let whiteCount = 0;
+  for (let row of grid) {
+    for (let cell of row) {
+      if (cell === "black") blackCount++;
+      if (cell === "white") whiteCount++;
+    }
+  }
+  if (blackCount > whiteCount) {
+    status.textContent = `ゲーム終了！勝者：先行（黒） ${blackCount} 対 ${whiteCount}`;
+  } else if (whiteCount > blackCount) {
+    status.textContent = `ゲーム終了！勝者：後攻（白） ${whiteCount} 対 ${blackCount}`;
+  } else {
+    status.textContent = `ゲーム終了！引き分け ${blackCount} 対 ${whiteCount}`;
+  }
+
+  render(); // 最終盤面を表示
+}
+
+resetButton.addEventListener("click", initBoard);
+initBoard();

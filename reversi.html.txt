@@ -1,0 +1,5 @@
+<h1>オセロ</h1>
+<div id="board"></div>
+<div id="status"></div>
+<div id="count"></div>
+<button id="reset">リセット</button>
